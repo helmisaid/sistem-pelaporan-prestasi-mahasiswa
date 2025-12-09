@@ -35,13 +35,17 @@ func main() {
 	// Placeholder
 	_ = mongoDB
 
-	// Repository 
-	authRepo := repository.NewAuthRepository(pgDB)
+	// Initialize Repositories
 	userRepo := repository.NewUserRepository(pgDB)
+	studentRepo := repository.NewStudentRepository(pgDB)
+	lecturerRepo := repository.NewLecturerRepository(pgDB)
+	authRepo := repository.NewAuthRepository(pgDB)
 
-	// Service 
+	// Initialize Services
+	studentSvc := service.NewStudentService(studentRepo)
+	lecturerSvc := service.NewLecturerService(lecturerRepo)
+	userSvc := service.NewUserService(userRepo, studentSvc, lecturerSvc, pgDB)
 	authSvc := service.NewAuthService(authRepo)
-	userSvc := service.NewUserService(userRepo, pgDB)
 
 	app := fiber.New()
 	app.Use(cors.New())

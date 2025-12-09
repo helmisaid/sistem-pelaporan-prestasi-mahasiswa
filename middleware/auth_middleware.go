@@ -65,7 +65,7 @@ func PermissionCheck(requiredPermission string) fiber.Handler {
 		}
 
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-			"error": "Forbidden: Anda tidak memiliki permission '" + requiredPermission + "'",
+			"error": "Forbidden: Anda tidak memiliki hak.",
 		})
 	}
 }

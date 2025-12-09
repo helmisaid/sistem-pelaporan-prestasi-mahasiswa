@@ -37,7 +37,7 @@ func (s *AuthService) Login(ctx context.Context, req model.LoginRequest) (*model
 	}
 
 	if !utils.CheckPassword(req.Password, user.PasswordHash) {
-		return nil, model.ErrInvalidCredentials
+		return nil, model.NewAuthenticationError("username atau password salah")
 	}
 
 	accessToken, err := utils.GenerateAccessToken(user.ID.String(), user.Username, user.Role.Name, user.Permissions)

@@ -18,16 +18,7 @@ type IUserRepository interface {
 	UpdateRole(ctx context.Context, userID, roleID string) error
 	CheckUsernameExists(ctx context.Context, username string, excludeUserID *string) (bool, error)
 	CheckEmailExists(ctx context.Context, email string, excludeUserID *string) (bool, error)
-	
-	// Student
-	CreateStudent(ctx context.Context, tx *sql.Tx, userID string, studentID, programStudy, academicYear string, advisorID *string) error
-	UpdateStudent(ctx context.Context, tx *sql.Tx, userID string, programStudy, academicYear *string, advisorID *string) error
-	GetStudentByUserID(ctx context.Context, userID string) (*model.StudentInfo, error)
-	
-	// Lecturer
-	CreateLecturer(ctx context.Context, tx *sql.Tx, userID, lecturerID, department string) error
-	UpdateLecturer(ctx context.Context, tx *sql.Tx, userID, department string) error
-	GetLecturerByUserID(ctx context.Context, userID string) (*model.LecturerInfo, error)
+	CheckRoleExists(ctx context.Context, roleID string) (bool, error)
 }
 
 type userRepository struct {
@@ -178,11 +169,11 @@ func (r *userRepository) Create(ctx context.Context, user *model.User) error {
 func (r *userRepository) Update(ctx context.Context, id string, user *model.User) error {
 	query := `
 		UPDATE users 
-		SET email = $1, full_name = $2, is_active = $3, updated_at = CURRENT_TIMESTAMP
-		WHERE id = $4
+		SET username = $1, email = $2, full_name = $3, is_active = $4, updated_at = CURRENT_TIMESTAMP
+		WHERE id = $5
 	`
 	
-	_, err := r.db.ExecContext(ctx, query, user.Email, user.FullName, user.IsActive, id)
+	_, err := r.db.ExecContext(ctx, query, user.Username, user.Email, user.FullName, user.IsActive, id)
 	return err
 }
 
@@ -216,138 +207,10 @@ func (r *userRepository) CheckEmailExists(ctx context.Context, email string, exc
 	return exists, err
 }
 
-// CreateStudent 
-func (r *userRepository) CreateStudent(ctx context.Context, tx *sql.Tx, userID string, studentID, programStudy, academicYear string, advisorID *string) error {
-	query := `
-		INSERT INTO students (user_id, student_id, program_study, academic_year, advisor_id)
-		VALUES ($1, $2, $3, $4, $5)
-	`
-	
-	var executor interface {
-		ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
-	}
-	
-	if tx != nil {
-		executor = tx
-	} else {
-		executor = r.db
-	}
-	
-	_, err := executor.ExecContext(ctx, query, userID, studentID, programStudy, academicYear, advisorID)
-	return err
-}
-
-// UpdateStudent 
-func (r *userRepository) UpdateStudent(ctx context.Context, tx *sql.Tx, userID string, programStudy, academicYear *string, advisorID *string) error {
-	query := `
-		UPDATE students 
-		SET program_study = COALESCE($1, program_study),
-		    academic_year = COALESCE($2, academic_year),
-		    advisor_id = $3
-		WHERE user_id = $4
-	`
-	
-	var executor interface {
-		ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
-	}
-	
-	if tx != nil {
-		executor = tx
-	} else {
-		executor = r.db
-	}
-	
-	_, err := executor.ExecContext(ctx, query, programStudy, academicYear, advisorID, userID)
-	return err
-}
-
-// GetStudentByUserID 
-func (r *userRepository) GetStudentByUserID(ctx context.Context, userID string) (*model.StudentInfo, error) {
-	query := `
-		SELECT s.student_id, s.program_study, s.academic_year, s.advisor_id,
-		       l.lecturer_id as advisor_name
-		FROM students s
-		LEFT JOIN lecturers l ON s.advisor_id = l.id
-		WHERE s.user_id = $1
-	`
-	
-	var info model.StudentInfo
-	var advisorID, advisorName sql.NullString
-	
-	err := r.db.QueryRowContext(ctx, query, userID).Scan(
-		&info.StudentID, &info.ProgramStudy, &info.AcademicYear,
-		&advisorID, &advisorName,
-	)
-	
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
-	}
-	
-	if advisorID.Valid {
-		info.AdvisorID = &advisorID.String
-	}
-	if advisorName.Valid {
-		info.AdvisorName = &advisorName.String
-	}
-	
-	return &info, nil
-}
-
-// CreateLecturer 
-func (r *userRepository) CreateLecturer(ctx context.Context, tx *sql.Tx, userID, lecturerID, department string) error {
-	query := `
-		INSERT INTO lecturers (user_id, lecturer_id, department)
-		VALUES ($1, $2, $3)
-	`
-	
-	var executor interface {
-		ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
-	}
-	
-	if tx != nil {
-		executor = tx
-	} else {
-		executor = r.db
-	}
-	
-	_, err := executor.ExecContext(ctx, query, userID, lecturerID, department)
-	return err
-}
-
-// UpdateLecturer 
-func (r *userRepository) UpdateLecturer(ctx context.Context, tx *sql.Tx, userID, department string) error {
-	query := `UPDATE lecturers SET department = $1 WHERE user_id = $2`
-	
-	var executor interface {
-		ExecContext(context.Context, string, ...interface{}) (sql.Result, error)
-	}
-	
-	if tx != nil {
-		executor = tx
-	} else {
-		executor = r.db
-	}
-	
-	_, err := executor.ExecContext(ctx, query, department, userID)
-	return err
-}
-
-// GetLecturerByUserID 
-func (r *userRepository) GetLecturerByUserID(ctx context.Context, userID string) (*model.LecturerInfo, error) {
-	query := `SELECT lecturer_id, department FROM lecturers WHERE user_id = $1`
-	
-	var info model.LecturerInfo
-	err := r.db.QueryRowContext(ctx, query, userID).Scan(&info.LecturerID, &info.Department)
-	
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, err
-	}
-	
-	return &info, nil
+// CheckRoleExists
+func (r *userRepository) CheckRoleExists(ctx context.Context, roleID string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM roles WHERE id = $1)`
+	var exists bool
+	err := r.db.QueryRowContext(ctx, query, roleID).Scan(&exists)
+	return exists, err
 }

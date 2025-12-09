@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"math"
 	"strings"
 
@@ -24,14 +23,23 @@ type IUserService interface {
 }
 
 type UserService struct {
-	repo repository.IUserRepository
-	db   *sql.DB
+	userRepo    repository.IUserRepository
+	studentSvc  IStudentService
+	lecturerSvc ILecturerService
+	db          *sql.DB
 }
 
-func NewUserService(repo repository.IUserRepository, db *sql.DB) IUserService {
+func NewUserService(
+	userRepo repository.IUserRepository,
+	studentSvc IStudentService,
+	lecturerSvc ILecturerService,
+	db *sql.DB,
+) IUserService {
 	return &UserService{
-		repo: repo,
-		db:   db,
+		userRepo:    userRepo,
+		studentSvc:  studentSvc,
+		lecturerSvc: lecturerSvc,
+		db:          db,
 	}
 }
 
@@ -60,7 +68,7 @@ func (s *UserService) GetAll(ctx context.Context, page, pageSize int, search, so
 		sortOrder = "DESC"
 	}
 
-	users, total, err := s.repo.GetAll(ctx, page, pageSize, search, sortBy, sortOrder)
+	users, total, err := s.userRepo.GetAll(ctx, page, pageSize, search, sortBy, sortOrder)
 	if err != nil {
 		return nil, model.ErrDatabaseError
 	}
@@ -83,7 +91,7 @@ func (s *UserService) GetAll(ctx context.Context, page, pageSize int, search, so
 
 // GetUserDetailByID 
 func (s *UserService) GetByID(ctx context.Context, id string) (*model.UserDetailDTO, error) {
-	user, err := s.repo.GetByID(ctx, id)
+	user, err := s.userRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, model.ErrDatabaseError
 	}
@@ -95,7 +103,7 @@ func (s *UserService) GetByID(ctx context.Context, id string) (*model.UserDetail
 
 	// Get student
 	if user.Role.Name == "Mahasiswa" {
-		studentInfo, err := s.repo.GetStudentByUserID(ctx, id)
+		studentInfo, err := s.studentSvc.GetProfile(ctx, id)
 		if err == nil && studentInfo != nil {
 			dto.Student = studentInfo
 		}
@@ -103,7 +111,7 @@ func (s *UserService) GetByID(ctx context.Context, id string) (*model.UserDetail
 
 	// Get lecturer 
 	if user.Role.Name == "Dosen Wali" {
-		lecturerInfo, err := s.repo.GetLecturerByUserID(ctx, id)
+		lecturerInfo, err := s.lecturerSvc.GetProfile(ctx, id)
 		if err == nil && lecturerInfo != nil {
 			dto.Lecturer = lecturerInfo
 		}
@@ -114,20 +122,20 @@ func (s *UserService) GetByID(ctx context.Context, id string) (*model.UserDetail
 
 // Create 
 func (s *UserService) Create(ctx context.Context, req model.CreateUserRequest) (*model.UserDetailDTO, error) {
-	exists, err := s.repo.CheckUsernameExists(ctx, req.Username, nil)
+	exists, err := s.userRepo.CheckUsernameExists(ctx, req.Username, nil)
 	if err != nil {
 		return nil, model.ErrDatabaseError
 	}
 	if exists {
-		return nil, fmt.Errorf("username sudah digunakan: %w", model.ErrValidationFailed)
+		return nil, model.NewValidationError("username sudah digunakan")
 	}
 
-	exists, err = s.repo.CheckEmailExists(ctx, req.Email, nil)
+	exists, err = s.userRepo.CheckEmailExists(ctx, req.Email, nil)
 	if err != nil {
 		return nil, model.ErrDatabaseError
 	}
 	if exists {
-		return nil, fmt.Errorf("email sudah digunakan: %w", model.ErrValidationFailed)
+		return nil, model.NewValidationError("email sudah digunakan")
 	}
 
 	hashedPassword, err := utils.HashPassword(req.Password)
@@ -135,9 +143,19 @@ func (s *UserService) Create(ctx context.Context, req model.CreateUserRequest) (
 		return nil, model.ErrTokenGenerationFailed
 	}
 
-	roleUUID, err := uuid.Parse(req.RoleID)
+	// Validate and parse role ID
+	roleID, err := uuid.Parse(req.RoleID)
 	if err != nil {
-		return nil, fmt.Errorf("format Role ID tidak valid: %w", model.ErrValidationFailed)
+		return nil, model.NewValidationError("format Role ID tidak valid")
+	}
+
+	// Check if role exists
+	roleExists, err := s.userRepo.CheckRoleExists(ctx, req.RoleID)
+	if err != nil {
+		return nil, model.ErrDatabaseError
+	}
+	if !roleExists {
+		return nil, model.NewValidationError("role tidak ditemukan")
 	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -151,38 +169,36 @@ func (s *UserService) Create(ctx context.Context, req model.CreateUserRequest) (
 		Email:        req.Email,
 		PasswordHash: hashedPassword,
 		FullName:     req.FullName,
-		RoleID:       roleUUID,
+		RoleID:       roleID,
 		IsActive:     true,
 	}
 
-	err = s.repo.Create(ctx, user)
+	err = s.userRepo.Create(ctx, user)
 	if err != nil {
 		return nil, model.ErrDatabaseError
 	}
 
 	if req.StudentID != nil && *req.StudentID != "" {
-		err = s.repo.CreateStudent(
-			ctx, tx,
-			user.ID.String(),
-			*req.StudentID,
-			utils.GetStringOrDefault(req.ProgramStudy, ""),
-			utils.GetStringOrDefault(req.AcademicYear, ""),
-			req.AdvisorID,
-		)
+		studentReq := model.CreateStudentProfileRequest{
+			StudentID:    *req.StudentID,
+			ProgramStudy: utils.GetStringOrDefault(req.ProgramStudy, ""),
+			AcademicYear: utils.GetStringOrDefault(req.AcademicYear, ""),
+			AdvisorID:    req.AdvisorID,
+		}
+		err = s.studentSvc.CreateProfile(ctx, tx, user.ID.String(), studentReq)
 		if err != nil {
-			return nil, fmt.Errorf("gagal membuat profil mahasiswa: %w", model.ErrDatabaseError)
+			return nil, err
 		}
 	}
 
 	if req.LecturerID != nil && *req.LecturerID != "" {
-		err = s.repo.CreateLecturer(
-			ctx, tx,
-			user.ID.String(),
-			*req.LecturerID,
-			utils.GetStringOrDefault(req.Department, ""),
-		)
+		lecturerReq := model.CreateLecturerProfileRequest{
+			LecturerID: *req.LecturerID,
+			Department: utils.GetStringOrDefault(req.Department, ""),
+		}
+		err = s.lecturerSvc.CreateProfile(ctx, tx, user.ID.String(), lecturerReq)
 		if err != nil {
-			return nil, fmt.Errorf("gagal membuat profil dosen: %w", model.ErrDatabaseError)
+			return nil, err
 		}
 	}
 
@@ -195,7 +211,7 @@ func (s *UserService) Create(ctx context.Context, req model.CreateUserRequest) (
 
 // Update 
 func (s *UserService) Update(ctx context.Context, id string, req model.UpdateUserRequest) (*model.UserDetailDTO, error) {
-	existingUser, err := s.repo.GetByID(ctx, id)
+	existingUser, err := s.userRepo.GetByID(ctx, id)
 	if err != nil {
 		return nil, model.ErrDatabaseError
 	}
@@ -203,13 +219,24 @@ func (s *UserService) Update(ctx context.Context, id string, req model.UpdateUse
 		return nil, model.ErrUserNotFound
 	}
 
-	if req.Email != nil && *req.Email != existingUser.Email {
-		exists, err := s.repo.CheckEmailExists(ctx, *req.Email, &id)
+	// Validate username if changed
+	if req.Username != nil && *req.Username != existingUser.Username {
+		exists, err := s.userRepo.CheckUsernameExists(ctx, *req.Username, &id)
 		if err != nil {
 			return nil, model.ErrDatabaseError
 		}
 		if exists {
-			return nil, fmt.Errorf("email sudah digunakan: %w", model.ErrValidationFailed)
+			return nil, model.NewValidationError("username sudah digunakan")
+		}
+	}
+
+	if req.Email != nil && *req.Email != existingUser.Email {
+		exists, err := s.userRepo.CheckEmailExists(ctx, *req.Email, &id)
+		if err != nil {
+			return nil, model.ErrDatabaseError
+		}
+		if exists {
+			return nil, model.NewValidationError("email sudah digunakan")
 		}
 	}
 
@@ -220,30 +247,41 @@ func (s *UserService) Update(ctx context.Context, id string, req model.UpdateUse
 	defer tx.Rollback()
 
 	updatedUser := &model.User{
+		Username: utils.GetStringOrDefault(req.Username, existingUser.Username),
 		Email:    utils.GetStringOrDefault(req.Email, existingUser.Email),
 		FullName: utils.GetStringOrDefault(req.FullName, existingUser.FullName),
 		IsActive: utils.GetBoolOrDefault(req.IsActive, existingUser.IsActive),
 	}
 
-	err = s.repo.Update(ctx, id, updatedUser)
+	err = s.userRepo.Update(ctx, id, updatedUser)
 	if err != nil {
 		return nil, model.ErrDatabaseError
 	}
 
 	if existingUser.Role.Name == "Mahasiswa" {
-		if req.ProgramStudy != nil || req.AcademicYear != nil || req.AdvisorID != nil {
-			err = s.repo.UpdateStudent(ctx, tx, id, req.ProgramStudy, req.AcademicYear, req.AdvisorID)
+		if req.StudentID != nil || req.ProgramStudy != nil || req.AcademicYear != nil || req.AdvisorID != nil {
+			updateReq := model.UpdateStudentProfileRequest{
+				StudentID:    req.StudentID,
+				ProgramStudy: req.ProgramStudy,
+				AcademicYear: req.AcademicYear,
+				AdvisorID:    req.AdvisorID,
+			}
+			err = s.studentSvc.UpdateProfile(ctx, tx, id, updateReq)
 			if err != nil {
-				return nil, fmt.Errorf("gagal update profil mahasiswa: %w", model.ErrDatabaseError)
+				return nil, err
 			}
 		}
 	}
 
 	if existingUser.Role.Name == "Dosen Wali" {
-		if req.Department != nil {
-			err = s.repo.UpdateLecturer(ctx, tx, id, *req.Department)
+		if req.LecturerID != nil || req.Department != nil {
+			updateReq := model.UpdateLecturerProfileRequest{
+				LecturerID: req.LecturerID,
+				Department: req.Department,
+			}
+			err = s.lecturerSvc.UpdateProfile(ctx, tx, id, updateReq)
 			if err != nil {
-				return nil, fmt.Errorf("gagal update profil dosen: %w", model.ErrDatabaseError)
+				return nil, err
 			}
 		}
 	}
@@ -257,7 +295,7 @@ func (s *UserService) Update(ctx context.Context, id string, req model.UpdateUse
 
 // Soft deletes 
 func (s *UserService) Delete(ctx context.Context, id string) error {
-	user, err := s.repo.GetByID(ctx, id)
+	user, err := s.userRepo.GetByID(ctx, id)
 	if err != nil {
 		return model.ErrDatabaseError
 	}
@@ -265,7 +303,7 @@ func (s *UserService) Delete(ctx context.Context, id string) error {
 		return model.ErrUserNotFound
 	}
 
-	err = s.repo.Delete(ctx, id)
+	err = s.userRepo.Delete(ctx, id)
 	if err != nil {
 		return model.ErrDatabaseError
 	}
@@ -275,7 +313,7 @@ func (s *UserService) Delete(ctx context.Context, id string) error {
 
 // UpdateRole 
 func (s *UserService) UpdateRole(ctx context.Context, id string, req model.UpdateRoleRequest) error {
-	user, err := s.repo.GetByID(ctx, id)
+	user, err := s.userRepo.GetByID(ctx, id)
 	if err != nil {
 		return model.ErrDatabaseError
 	}
@@ -283,7 +321,7 @@ func (s *UserService) UpdateRole(ctx context.Context, id string, req model.Updat
 		return model.ErrUserNotFound
 	}
 
-	err = s.repo.UpdateRole(ctx, id, req.RoleID)
+	err = s.userRepo.UpdateRole(ctx, id, req.RoleID)
 	if err != nil {
 		return model.ErrDatabaseError
 	}

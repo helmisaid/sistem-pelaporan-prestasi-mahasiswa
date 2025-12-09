@@ -21,14 +21,7 @@ func RegisterAuthRoutes(router fiber.Router, authSvc service.IAuthService) {
 
 		resp, err := authSvc.Login(c.Context(), req)
 		if err != nil {
-			// Check error type and return appropriate response
-			if model.IsValidationError(err) {
-				return helper.BadRequest(c, err.Error(), nil)
-			}
-			if model.IsAuthenticationError(err) {
-				return helper.Unauthorized(c, err.Error())
-			}
-			return helper.InternalServerError(c, "Terjadi kesalahan internal")
+			return helper.HandleError(c, err)
 		}
 
 		return helper.Success(c, "Login berhasil", resp)
@@ -43,13 +36,7 @@ func RegisterAuthRoutes(router fiber.Router, authSvc service.IAuthService) {
 
 		resp, err := authSvc.RefreshToken(c.Context(), req)
 		if err != nil {
-			if model.IsAuthenticationError(err) {
-				return helper.Unauthorized(c, err.Error())
-			}
-			if model.IsNotFoundError(err) {
-				return helper.NotFound(c, err.Error())
-			}
-			return helper.InternalServerError(c, "Terjadi kesalahan internal")
+			return helper.HandleError(c, err)
 		}
 
 		return helper.Success(c, "Token berhasil diperbarui", resp)
@@ -67,10 +54,7 @@ func RegisterAuthRoutes(router fiber.Router, authSvc service.IAuthService) {
 
 		user, err := authSvc.GetProfile(c.Context(), userID)
 		if err != nil {
-			if model.IsNotFoundError(err) {
-				return helper.NotFound(c, err.Error())
-			}
-			return helper.InternalServerError(c, "Terjadi kesalahan internal")
+			return helper.HandleError(c, err)
 		}
 
 		return helper.Success(c, "Profil berhasil diambil", user)

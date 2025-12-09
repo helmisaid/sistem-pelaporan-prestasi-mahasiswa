@@ -71,16 +71,19 @@ type CreateUserRequest struct {
 
 
 type UpdateUserRequest struct {
+	Username     *string `json:"username,omitempty"`
 	Email        *string `json:"email,omitempty" validate:"omitempty,email"`
 	FullName     *string `json:"full_name,omitempty"`
 	IsActive     *bool   `json:"is_active,omitempty"`
 	
 	// For students
+	StudentID    *string `json:"student_id,omitempty"`
 	ProgramStudy *string `json:"program_study,omitempty"`
 	AcademicYear *string `json:"academic_year,omitempty"`
 	AdvisorID    *string `json:"advisor_id,omitempty" validate:"omitempty,uuid"`
 	
 	// For lecturers
+	LecturerID   *string `json:"lecturer_id,omitempty"`
 	Department   *string `json:"department,omitempty"`
 }
 
