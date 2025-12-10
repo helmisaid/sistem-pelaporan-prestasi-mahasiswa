@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"database/sql"
+	"math"
+	"strings"
 
 	"sistem-pelaporan-prestasi-mahasiswa/app/model"
 	"sistem-pelaporan-prestasi-mahasiswa/app/repository"
@@ -14,6 +16,9 @@ type IStudentService interface {
 	GetProfile(ctx context.Context, userID string) (*model.StudentInfo, error)
 	DeleteProfile(ctx context.Context, tx *sql.Tx, userID string) error
 	ValidateStudentID(ctx context.Context, studentID string, excludeUserID *string) error
+	GetAll(ctx context.Context, page, pageSize int, search, sortBy, sortOrder string) (*model.PaginatedStudents, error)
+	GetByID(ctx context.Context, id string) (*model.StudentDetailDTO, error)
+	UpdateAdvisor(ctx context.Context, id string, req model.UpdateAdvisorRequest) error
 }
 
 type StudentService struct {
@@ -62,5 +67,79 @@ func (s *StudentService) ValidateStudentID(ctx context.Context, studentID string
 	if exists {
 		return model.NewValidationError("student ID sudah digunakan")
 	}
+	return nil
+}
+
+func (s *StudentService) GetAll(ctx context.Context, page, pageSize int, search, sortBy, sortOrder string) (*model.PaginatedStudents, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 10
+	}
+
+	validSortColumns := map[string]bool{
+		"u.full_name":     true,
+		"s.student_id":    true,
+		"s.program_study": true,
+		"s.academic_year": true,
+		"u.created_at":    true,
+	}
+
+	if !validSortColumns[sortBy] {
+		sortBy = "u.created_at"
+	}
+
+	sortOrder = strings.ToUpper(sortOrder)
+	if sortOrder != "ASC" && sortOrder != "DESC" {
+		sortOrder = "DESC"
+	}
+
+	students, total, err := s.studentRepo.GetAll(ctx, page, pageSize, search, sortBy, sortOrder)
+	if err != nil {
+		return nil, model.ErrDatabaseError
+	}
+
+	totalPages := int(math.Ceil(float64(total) / float64(pageSize)))
+
+	return &model.PaginatedStudents{
+		Data:       students,
+		Total:      total,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+	}, nil
+}
+
+func (s *StudentService) GetByID(ctx context.Context, id string) (*model.StudentDetailDTO, error) {
+	detail, err := s.studentRepo.GetDetailByID(ctx, id)
+	if err != nil {
+		return nil, model.ErrDatabaseError
+	}
+	if detail == nil {
+		return nil, model.NewNotFoundError("mahasiswa tidak ditemukan")
+	}
+	return detail, nil
+}
+
+func (s *StudentService) UpdateAdvisor(ctx context.Context, id string, req model.UpdateAdvisorRequest) error {
+	// Check if student exists
+	detail, err := s.studentRepo.GetDetailByID(ctx, id)
+	if err != nil {
+		return model.ErrDatabaseError
+	}
+	if detail == nil {
+		return model.NewValidationError("mahasiswa tidak ditemukan")
+	}
+
+	// advisor_id exist check
+	if req.AdvisorID != nil && *req.AdvisorID != "" {
+	}
+
+	err = s.studentRepo.UpdateAdvisor(ctx, id, req.AdvisorID)
+	if err != nil {
+		return model.ErrDatabaseError
+	}
+
 	return nil
 }

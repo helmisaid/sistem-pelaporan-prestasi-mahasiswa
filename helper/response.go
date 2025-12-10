@@ -2,7 +2,6 @@ package helper
 
 import "github.com/gofiber/fiber/v2"
 
-// MetaInfo represents standard API response structure
 type MetaInfo struct {
 	Status  string      `json:"status"`
 	Message string      `json:"message,omitempty"`

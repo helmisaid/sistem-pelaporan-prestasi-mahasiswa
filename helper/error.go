@@ -6,23 +6,25 @@ import (
 )
 
 func HandleError(c *fiber.Ctx, err error) error {
-	if err == nil {
-		return nil
-	}
-	if model.IsValidationError(err) {
-		return BadRequest(c, err.Error(), nil)
-	}
+    if err == nil {
+        return nil
+    }
 
-	if model.IsAuthenticationError(err) {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"status":  "fail",
-			"message": err.Error(),
-		})
-	}
+    // Validation 400
+    if model.IsValidationError(err) {
+        return BadRequest(c, err.Error(), nil) 
+    }
 
-	if model.IsNotFoundError(err) {
-		return NotFound(c, err.Error())
-	}
+    // Auth 401
+    if model.IsAuthenticationError(err) {
+        return Unauthorized(c, err.Error()) 
+    }
 
-	return InternalServerError(c, "Terjadi kesalahan internal pada server")
+    // Not Found 404
+    if model.IsNotFoundError(err) {
+        return NotFound(c, err.Error())
+    }
+
+    // Default 500
+    return InternalServerError(c, "Terjadi kesalahan internal pada server")
 }

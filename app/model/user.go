@@ -120,22 +120,6 @@ type UserDetailDTO struct {
 	Lecturer  *LecturerInfo  `json:"lecturer,omitempty"`
 }
 
-
-type StudentInfo struct {
-	StudentID    string  `json:"student_id"`
-	ProgramStudy string  `json:"program_study"`
-	AcademicYear string  `json:"academic_year"`
-	AdvisorID    *string `json:"advisor_id,omitempty"`
-	AdvisorName  *string `json:"advisor_name,omitempty"`
-}
-
-
-type LecturerInfo struct {
-	LecturerID string `json:"lecturer_id"`
-	Department string `json:"department"`
-}
-
-
 type PaginatedUsers struct {
 	Data       []UserListDTO `json:"data"`
 	Total      int64         `json:"total"`

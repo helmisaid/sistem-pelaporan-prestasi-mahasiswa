@@ -32,23 +32,25 @@ func main() {
 	if err != nil {
 		log.Fatal("❌ Gagal konek MongoDB: ", err)
 	}
-	// Placeholder
-	_ = mongoDB
 
 	// Initialize Repositories
 	userRepo := repository.NewUserRepository(pgDB)
 	studentRepo := repository.NewStudentRepository(pgDB)
 	lecturerRepo := repository.NewLecturerRepository(pgDB)
 	authRepo := repository.NewAuthRepository(pgDB)
+	achievementRepo := repository.NewAchievementRepository(pgDB, mongoDB)
 
 	// Initialize Services
 	studentSvc := service.NewStudentService(studentRepo)
 	lecturerSvc := service.NewLecturerService(lecturerRepo)
 	userSvc := service.NewUserService(userRepo, studentSvc, lecturerSvc, pgDB)
 	authSvc := service.NewAuthService(authRepo)
+	achievementSvc := service.NewAchievementService(achievementRepo, studentRepo, lecturerSvc)
 
 	app := fiber.New()
 	app.Use(cors.New())
+
+	app.Static("/uploads", "./uploads")
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
@@ -62,6 +64,8 @@ func main() {
 
 	route.RegisterAuthRoutes(api, authSvc)
 	route.RegisterUserRoutes(api, userSvc)
+	route.RegisterStudentRoutes(api, studentSvc)
+	route.RegisterAchievementRoutes(api, achievementSvc)
 
 	port := os.Getenv("APP_PORT")
 	if port == "" {

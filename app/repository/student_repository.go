@@ -13,6 +13,9 @@ type IStudentRepository interface {
 	GetByUserID(ctx context.Context, userID string) (*model.StudentInfo, error)
 	Delete(ctx context.Context, tx *sql.Tx, userID string) error
 	CheckStudentIDExists(ctx context.Context, studentID string, excludeUserID *string) (bool, error)
+	GetAll(ctx context.Context, page, pageSize int, search, sortBy, sortOrder string) ([]model.StudentListDTO, int64, error)
+	GetDetailByID(ctx context.Context, id string) (*model.StudentDetailDTO, error)
+	UpdateAdvisor(ctx context.Context, userID string, advisorID *string) error
 }
 
 type studentRepository struct {
@@ -69,7 +72,7 @@ func (r *studentRepository) Update(ctx context.Context, tx *sql.Tx, userID strin
 
 func (r *studentRepository) GetByUserID(ctx context.Context, userID string) (*model.StudentInfo, error) {
 	query := `
-		SELECT s.student_id, s.program_study, s.academic_year, s.advisor_id,
+		SELECT s.id, s.student_id, s.program_study, s.academic_year, s.advisor_id,
 		       l.lecturer_id as advisor_name
 		FROM students s
 		LEFT JOIN lecturers l ON s.advisor_id = l.id
@@ -80,7 +83,7 @@ func (r *studentRepository) GetByUserID(ctx context.Context, userID string) (*mo
 	var advisorID, advisorName sql.NullString
 	
 	err := r.db.QueryRowContext(ctx, query, userID).Scan(
-		&info.StudentID, &info.ProgramStudy, &info.AcademicYear,
+		&info.ID, &info.StudentID, &info.ProgramStudy, &info.AcademicYear,
 		&advisorID, &advisorName,
 	)
 	
@@ -123,4 +126,117 @@ func (r *studentRepository) CheckStudentIDExists(ctx context.Context, studentID 
 	var exists bool
 	err := r.db.QueryRowContext(ctx, query, studentID, excludeUserID).Scan(&exists)
 	return exists, err
+}
+
+func (r *studentRepository) GetAll(ctx context.Context, page, pageSize int, search, sortBy, sortOrder string) ([]model.StudentListDTO, int64, error) {
+	offset := (page - 1) * pageSize
+
+	// Count total query
+	countQuery := `
+		SELECT COUNT(*)
+		FROM students s
+		JOIN users u ON s.user_id = u.id
+		WHERE u.deleted_at IS NULL
+		  AND (u.full_name ILIKE $1 OR s.student_id ILIKE $1)
+	`
+
+	var total int64
+	searchPattern := "%" + search + "%"
+	err := r.db.QueryRowContext(ctx, countQuery, searchPattern).Scan(&total)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Data query with join
+	dataQuery := `
+		SELECT 
+			u.id, s.student_id, u.full_name, u.email,
+			s.program_study, s.academic_year, s.advisor_id,
+			l.lecturer_id as advisor_name, u.is_active
+		FROM students s
+		JOIN users u ON s.user_id = u.id
+		LEFT JOIN lecturers l ON s.advisor_id = l.id
+		WHERE u.deleted_at IS NULL
+		  AND (u.full_name ILIKE $1 OR s.student_id ILIKE $1)
+		ORDER BY ` + sortBy + ` ` + sortOrder + `
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.db.QueryContext(ctx, dataQuery, searchPattern, pageSize, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var students []model.StudentListDTO
+	for rows.Next() {
+		var student model.StudentListDTO
+		var advisorID, advisorName sql.NullString
+
+		err := rows.Scan(
+			&student.ID, &student.StudentID, &student.FullName, &student.Email,
+			&student.ProgramStudy, &student.AcademicYear, &advisorID,
+			&advisorName, &student.IsActive,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if advisorID.Valid {
+			student.AdvisorID = &advisorID.String
+		}
+		if advisorName.Valid {
+			student.AdvisorName = &advisorName.String
+		}
+
+		students = append(students, student)
+	}
+
+	return students, total, rows.Err()
+}
+
+func (r *studentRepository) GetDetailByID(ctx context.Context, id string) (*model.StudentDetailDTO, error) {
+	query := `
+		SELECT 
+			u.id, u.username, u.email, u.full_name,
+			s.student_id, s.program_study, s.academic_year,
+			s.advisor_id, l.lecturer_id as advisor_name,
+			u.is_active, u.created_at, u.updated_at
+		FROM users u
+		JOIN students s ON u.id = s.user_id
+		LEFT JOIN lecturers l ON s.advisor_id = l.id
+		WHERE u.id = $1 AND u.deleted_at IS NULL
+	`
+
+	var detail model.StudentDetailDTO
+	var advisorID, advisorName sql.NullString
+
+	err := r.db.QueryRowContext(ctx, query, id).Scan(
+		&detail.ID, &detail.Username, &detail.Email, &detail.FullName,
+		&detail.StudentID, &detail.ProgramStudy, &detail.AcademicYear,
+		&advisorID, &advisorName,
+		&detail.IsActive, &detail.CreatedAt, &detail.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	if advisorID.Valid {
+		detail.AdvisorID = &advisorID.String
+	}
+	if advisorName.Valid {
+		detail.AdvisorName = &advisorName.String
+	}
+
+	return &detail, nil
+}
+
+func (r *studentRepository) UpdateAdvisor(ctx context.Context, userID string, advisorID *string) error {
+	query := `UPDATE students SET advisor_id = $1 WHERE user_id = $2`
+	_, err := r.db.ExecContext(ctx, query, advisorID, userID)
+	return err
 }

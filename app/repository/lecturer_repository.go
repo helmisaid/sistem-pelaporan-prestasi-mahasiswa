@@ -61,10 +61,10 @@ func (r *lecturerRepository) Update(ctx context.Context, tx *sql.Tx, userID stri
 }
 
 func (r *lecturerRepository) GetByUserID(ctx context.Context, userID string) (*model.LecturerInfo, error) {
-	query := `SELECT lecturer_id, department FROM lecturers WHERE user_id = $1`
+	query := `SELECT id, lecturer_id, department FROM lecturers WHERE user_id = $1`
 	
 	var info model.LecturerInfo
-	err := r.db.QueryRowContext(ctx, query, userID).Scan(&info.LecturerID, &info.Department)
+	err := r.db.QueryRowContext(ctx, query, userID).Scan(&info.ID, &info.LecturerID, &info.Department)
 	
 	if err != nil {
 		if err == sql.ErrNoRows {
