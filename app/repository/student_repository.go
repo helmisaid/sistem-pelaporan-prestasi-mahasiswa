@@ -14,8 +14,8 @@ type IStudentRepository interface {
 	Delete(ctx context.Context, tx *sql.Tx, userID string) error
 	CheckStudentIDExists(ctx context.Context, studentID string, excludeUserID *string) (bool, error)
 	GetAll(ctx context.Context, page, pageSize int, search, sortBy, sortOrder string) ([]model.StudentListDTO, int64, error)
-	GetDetailByID(ctx context.Context, id string) (*model.StudentDetailDTO, error)
-	UpdateAdvisor(ctx context.Context, userID string, advisorID *string) error
+	GetDetailByID(ctx context.Context, studentID string) (*model.StudentDetailDTO, error)
+	UpdateAdvisor(ctx context.Context, studentID string, advisorID *string) error
 }
 
 type studentRepository struct {
@@ -136,7 +136,7 @@ func (r *studentRepository) GetAll(ctx context.Context, page, pageSize int, sear
 		SELECT COUNT(*)
 		FROM students s
 		JOIN users u ON s.user_id = u.id
-		WHERE u.deleted_at IS NULL
+		WHERE u.is_active = true
 		  AND (u.full_name ILIKE $1 OR s.student_id ILIKE $1)
 	`
 
@@ -152,11 +152,12 @@ func (r *studentRepository) GetAll(ctx context.Context, page, pageSize int, sear
 		SELECT 
 			u.id, s.student_id, u.full_name, u.email,
 			s.program_study, s.academic_year, s.advisor_id,
-			l.lecturer_id as advisor_name, u.is_active
+			u_advisor.full_name as advisor_name, u.is_active
 		FROM students s
 		JOIN users u ON s.user_id = u.id
 		LEFT JOIN lecturers l ON s.advisor_id = l.id
-		WHERE u.deleted_at IS NULL
+		LEFT JOIN users u_advisor ON l.user_id = u_advisor.id
+		WHERE u.is_active = true
 		  AND (u.full_name ILIKE $1 OR s.student_id ILIKE $1)
 		ORDER BY ` + sortBy + ` ` + sortOrder + `
 		LIMIT $2 OFFSET $3
@@ -200,12 +201,13 @@ func (r *studentRepository) GetDetailByID(ctx context.Context, id string) (*mode
 		SELECT 
 			u.id, u.username, u.email, u.full_name,
 			s.student_id, s.program_study, s.academic_year,
-			s.advisor_id, l.lecturer_id as advisor_name,
+			s.advisor_id, u_advisor.full_name as advisor_name,
 			u.is_active, u.created_at, u.updated_at
 		FROM users u
 		JOIN students s ON u.id = s.user_id
 		LEFT JOIN lecturers l ON s.advisor_id = l.id
-		WHERE u.id = $1 AND u.deleted_at IS NULL
+		LEFT JOIN users u_advisor ON l.user_id = u_advisor.id
+		WHERE s.id = $1 AND u.is_active = true
 	`
 
 	var detail model.StudentDetailDTO
@@ -235,8 +237,8 @@ func (r *studentRepository) GetDetailByID(ctx context.Context, id string) (*mode
 	return &detail, nil
 }
 
-func (r *studentRepository) UpdateAdvisor(ctx context.Context, userID string, advisorID *string) error {
-	query := `UPDATE students SET advisor_id = $1 WHERE user_id = $2`
-	_, err := r.db.ExecContext(ctx, query, advisorID, userID)
+func (r *studentRepository) UpdateAdvisor(ctx context.Context, studentID string, advisorID *string) error {
+	query := `UPDATE students SET advisor_id = $1 WHERE id = $2`
+	_, err := r.db.ExecContext(ctx, query, advisorID, studentID)
 	return err
 }

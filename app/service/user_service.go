@@ -158,6 +158,37 @@ func (s *UserService) Create(ctx context.Context, req model.CreateUserRequest) (
 		return nil, model.NewValidationError("role tidak ditemukan")
 	}
 
+	// Get role details to check role name
+	role, err := s.userRepo.GetRoleByID(ctx, req.RoleID)
+	if err != nil {
+		return nil, model.ErrDatabaseError
+	}
+	if role == nil {
+		return nil, model.NewValidationError("role tidak ditemukan")
+	}
+
+	// Validate required fields based on role
+	switch role.Name {
+	case "Mahasiswa":
+		if req.StudentID == nil || *req.StudentID == "" {
+			return nil, model.NewValidationError("student_id wajib diisi untuk role Mahasiswa")
+		}
+		if req.ProgramStudy == nil || *req.ProgramStudy == "" {
+			return nil, model.NewValidationError("program_study wajib diisi untuk role Mahasiswa")
+		}
+		if req.AcademicYear == nil || *req.AcademicYear == "" {
+			return nil, model.NewValidationError("academic_year wajib diisi untuk role Mahasiswa")
+		}
+
+	case "Dosen Wali":
+		if req.LecturerID == nil || *req.LecturerID == "" {
+			return nil, model.NewValidationError("lecturer_id wajib diisi untuk role Dosen Wali")
+		}
+		if req.Department == nil || *req.Department == "" {
+			return nil, model.NewValidationError("department wajib diisi untuk role Dosen Wali")
+		}
+	}
+
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, model.ErrDatabaseError
@@ -173,12 +204,23 @@ func (s *UserService) Create(ctx context.Context, req model.CreateUserRequest) (
 		IsActive:     true,
 	}
 
-	err = s.userRepo.Create(ctx, user)
+	err = s.userRepo.Create(ctx, tx, user)
 	if err != nil {
 		return nil, model.ErrDatabaseError
 	}
 
+	// Create student profile if Mahasiswa role
 	if req.StudentID != nil && *req.StudentID != "" {
+		if req.AdvisorID != nil && *req.AdvisorID != "" {
+			exists, err := s.lecturerSvc.CheckExistsByID(ctx, *req.AdvisorID)
+			if err != nil {
+				return nil, model.ErrDatabaseError
+			}
+			if !exists {
+				return nil, model.NewValidationError("Dosen wali dengan ID tersebut tidak ditemukan")
+			}
+		}
+
 		studentReq := model.CreateStudentProfileRequest{
 			StudentID:    *req.StudentID,
 			ProgramStudy: utils.GetStringOrDefault(req.ProgramStudy, ""),
@@ -191,6 +233,7 @@ func (s *UserService) Create(ctx context.Context, req model.CreateUserRequest) (
 		}
 	}
 
+	// Create lecturer profile if Dosen Wali role
 	if req.LecturerID != nil && *req.LecturerID != "" {
 		lecturerReq := model.CreateLecturerProfileRequest{
 			LecturerID: *req.LecturerID,
@@ -230,6 +273,7 @@ func (s *UserService) Update(ctx context.Context, id string, req model.UpdateUse
 		}
 	}
 
+	// Validate email if changed
 	if req.Email != nil && *req.Email != existingUser.Email {
 		exists, err := s.userRepo.CheckEmailExists(ctx, *req.Email, &id)
 		if err != nil {
@@ -258,6 +302,7 @@ func (s *UserService) Update(ctx context.Context, id string, req model.UpdateUse
 		return nil, model.ErrDatabaseError
 	}
 
+	// Update student profile if Mahasiswa role
 	if existingUser.Role.Name == "Mahasiswa" {
 		if req.StudentID != nil || req.ProgramStudy != nil || req.AcademicYear != nil || req.AdvisorID != nil {
 			updateReq := model.UpdateStudentProfileRequest{
@@ -273,6 +318,7 @@ func (s *UserService) Update(ctx context.Context, id string, req model.UpdateUse
 		}
 	}
 
+	// Update lecturer profile if Dosen Wali role
 	if existingUser.Role.Name == "Dosen Wali" {
 		if req.LecturerID != nil || req.Department != nil {
 			updateReq := model.UpdateLecturerProfileRequest{

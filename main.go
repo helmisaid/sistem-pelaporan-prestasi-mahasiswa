@@ -41,8 +41,8 @@ func main() {
 	achievementRepo := repository.NewAchievementRepository(pgDB, mongoDB)
 
 	// Initialize Services
-	studentSvc := service.NewStudentService(studentRepo)
 	lecturerSvc := service.NewLecturerService(lecturerRepo)
+	studentSvc := service.NewStudentService(studentRepo, lecturerSvc)
 	userSvc := service.NewUserService(userRepo, studentSvc, lecturerSvc, pgDB)
 	authSvc := service.NewAuthService(authRepo)
 	achievementSvc := service.NewAchievementService(achievementRepo, studentRepo, lecturerSvc)
@@ -64,7 +64,8 @@ func main() {
 
 	route.RegisterAuthRoutes(api, authSvc)
 	route.RegisterUserRoutes(api, userSvc)
-	route.RegisterStudentRoutes(api, studentSvc)
+	route.RegisterStudentRoutes(api, studentSvc, achievementSvc)
+	route.RegisterLecturerRoutes(api, lecturerSvc)
 	route.RegisterAchievementRoutes(api, achievementSvc)
 
 	port := os.Getenv("APP_PORT")

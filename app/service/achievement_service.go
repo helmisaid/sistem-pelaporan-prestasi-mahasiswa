@@ -25,6 +25,7 @@ type IAchievementService interface {
 	Delete(ctx context.Context, id, userID string) error
 	Verify(ctx context.Context, id, userID string, req model.VerifyAchievementRequest) error
     Reject(ctx context.Context, id, userID string, req model.RejectAchievementRequest) error
+	GetByStudent(ctx context.Context, targetUserID, viewerUserID, viewerRole string, page, pageSize int, status string) (*model.PaginatedAchievements, error)
 }
 
 type AchievementService struct {
@@ -366,4 +367,60 @@ func (s *AchievementService) GetDetail(ctx context.Context, id, userID, roleName
 	}
 
 	return detail, nil
+}
+
+// Get Achievement by Student ID
+func (s *AchievementService) GetByStudent(ctx context.Context, targetUserID, viewerUserID, viewerRole string, page, pageSize int, status string) (*model.PaginatedAchievements, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 10
+	}
+
+	targetStudent, err := s.studentRepo.GetByUserID(ctx, targetUserID)
+	if err != nil {
+		return nil, model.ErrDatabaseError
+	}
+	if targetStudent == nil {
+		return nil, model.NewNotFoundError("Mahasiswa tidak ditemukan")
+	}
+
+	// Validate viewer access based on role
+	switch viewerRole {
+	case "Mahasiswa":
+		if viewerUserID != targetUserID {
+			return nil, model.NewValidationError("Anda tidak memiliki akses untuk melihat prestasi mahasiswa lain")
+		}
+
+	case "Dosen Wali":
+		lecturer, err := s.lecturerSvc.GetProfile(ctx, viewerUserID)
+		if err != nil {
+			return nil, model.ErrDatabaseError
+		}
+		if targetStudent.AdvisorID == nil || *targetStudent.AdvisorID != lecturer.ID {
+			return nil, model.NewValidationError("Mahasiswa ini bukan bimbingan Anda")
+		}
+
+	case "Admin":
+		// Admin has full access - no additional validation needed
+
+	default:
+		return nil, model.NewValidationError("Role tidak dikenali")
+	}
+
+	data, total, err := s.achRepo.GetAll(ctx, page, pageSize, "", targetStudent.ID, "", status)
+	if err != nil {
+		return nil, model.ErrDatabaseError
+	}
+
+	totalPages := int(math.Ceil(float64(total) / float64(pageSize)))
+
+	return &model.PaginatedAchievements{
+		Data:       data,
+		Total:      total,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+	}, nil
 }

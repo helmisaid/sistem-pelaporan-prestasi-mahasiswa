@@ -42,6 +42,8 @@ func AuthProtected() fiber.Handler {
 	}
 }
 
+
+
 // RBAC
 func PermissionCheck(requiredPermission string) fiber.Handler {
 	return func(c *fiber.Ctx) error {

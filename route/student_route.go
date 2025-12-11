@@ -9,7 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func RegisterStudentRoutes(router fiber.Router, studentSvc service.IStudentService) {
+func RegisterStudentRoutes(router fiber.Router, studentSvc service.IStudentService, achSvc service.IAchievementService) {
 	students := router.Group("/students")
 	students.Use(middleware.AuthProtected())
 
@@ -57,4 +57,23 @@ func RegisterStudentRoutes(router fiber.Router, studentSvc service.IStudentServi
 
 		return helper.Success(c, "Dosen wali berhasil diupdate", nil)
 	})
+
+	// Get student achievements
+	students.Get("/:id/achievements", middleware.PermissionCheck("student:read"), func(c *fiber.Ctx) error {
+        targetUserID := c.Params("id")
+        
+        viewerUserID := c.Locals("user_id").(string)
+        viewerRole := c.Locals("role").(string)
+
+        page := c.QueryInt("page", 1)
+        limit := c.QueryInt("limit", 10)
+        status := c.Query("status", "")
+
+        result, err := achSvc.GetByStudent(c.Context(), targetUserID, viewerUserID, viewerRole, page, limit, status)
+        if err != nil {
+            return helper.HandleError(c, err)
+        }
+
+        return helper.Success(c, "Daftar prestasi mahasiswa berhasil diambil", result)
+    })
 }

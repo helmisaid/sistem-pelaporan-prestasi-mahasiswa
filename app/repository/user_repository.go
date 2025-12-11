@@ -12,13 +12,14 @@ import (
 type IUserRepository interface {
 	GetAll(ctx context.Context, page, pageSize int, search, sortBy, sortOrder string) ([]model.User, int64, error)
 	GetByID(ctx context.Context, id string) (*model.User, error)
-	Create(ctx context.Context, user *model.User) error
+	Create(ctx context.Context, tx *sql.Tx, user *model.User) error
 	Update(ctx context.Context, id string, user *model.User) error
 	Delete(ctx context.Context, id string) error
 	UpdateRole(ctx context.Context, userID, roleID string) error
 	CheckUsernameExists(ctx context.Context, username string, excludeUserID *string) (bool, error)
 	CheckEmailExists(ctx context.Context, email string, excludeUserID *string) (bool, error)
 	CheckRoleExists(ctx context.Context, roleID string) (bool, error)
+	GetRoleByID(ctx context.Context, roleID string) (*model.Role, error)
 }
 
 type userRepository struct {
@@ -150,14 +151,24 @@ func (r *userRepository) GetByID(ctx context.Context, id string) (*model.User, e
 }
 
 // Create 
-func (r *userRepository) Create(ctx context.Context, user *model.User) error {
+func (r *userRepository) Create(ctx context.Context, tx *sql.Tx, user *model.User) error {
 	query := `
 		INSERT INTO users (username, email, password_hash, full_name, role_id, is_active)
 		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id, created_at, updated_at
 	`
 	
-	err := r.db.QueryRowContext(
+	var executor interface {
+		QueryRowContext(context.Context, string, ...interface{}) *sql.Row
+	}
+
+	if tx != nil {
+		executor = tx
+	} else {
+		executor = r.db
+	}
+
+	err := executor.QueryRowContext(
 		ctx, query,
 		user.Username, user.Email, user.PasswordHash, user.FullName, user.RoleID, user.IsActive,
 	).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
@@ -213,4 +224,18 @@ func (r *userRepository) CheckRoleExists(ctx context.Context, roleID string) (bo
 	var exists bool
 	err := r.db.QueryRowContext(ctx, query, roleID).Scan(&exists)
 	return exists, err
+}
+
+// GetRoleByID
+func (r *userRepository) GetRoleByID(ctx context.Context, roleID string) (*model.Role, error) {
+	query := `SELECT id, name FROM roles WHERE id = $1`
+	var role model.Role
+	err := r.db.QueryRowContext(ctx, query, roleID).Scan(&role.ID, &role.Name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &role, nil
 }

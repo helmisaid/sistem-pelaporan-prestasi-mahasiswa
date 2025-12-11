@@ -159,3 +159,4 @@ func RegisterAchievementRoutes(router fiber.Router, achSvc service.IAchievementS
 		return helper.Success(c, "File berhasil diupload", result)
 	})
 }
+

@@ -23,13 +23,16 @@ type IStudentService interface {
 
 type StudentService struct {
 	studentRepo repository.IStudentRepository
+	lecturerSvc ILecturerService
 }
 
 func NewStudentService(
 	studentRepo repository.IStudentRepository,
+	lecturerSvc ILecturerService,
 ) IStudentService {
 	return &StudentService{
 		studentRepo: studentRepo,
+		lecturerSvc: lecturerSvc,
 	}
 }
 
@@ -123,17 +126,25 @@ func (s *StudentService) GetByID(ctx context.Context, id string) (*model.Student
 }
 
 func (s *StudentService) UpdateAdvisor(ctx context.Context, id string, req model.UpdateAdvisorRequest) error {
+
 	// Check if student exists
 	detail, err := s.studentRepo.GetDetailByID(ctx, id)
 	if err != nil {
 		return model.ErrDatabaseError
 	}
 	if detail == nil {
-		return model.NewValidationError("mahasiswa tidak ditemukan")
+		return model.NewNotFoundError("Mahasiswa tidak ditemukan")
 	}
 
-	// advisor_id exist check
+	// Validate advisor exists if provided
 	if req.AdvisorID != nil && *req.AdvisorID != "" {
+		exists, err := s.lecturerSvc.CheckExistsByID(ctx, *req.AdvisorID)
+		if err != nil {
+			return model.ErrDatabaseError
+		}
+		if !exists {
+			return model.NewValidationError("Dosen wali dengan ID tersebut tidak ditemukan")
+		}
 	}
 
 	err = s.studentRepo.UpdateAdvisor(ctx, id, req.AdvisorID)
