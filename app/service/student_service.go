@@ -114,6 +114,7 @@ func (s *StudentService) GetAll(ctx context.Context, page, pageSize int, search,
 	}, nil
 }
 
+// GetStudentByID
 func (s *StudentService) GetByID(ctx context.Context, id string) (*model.StudentDetailDTO, error) {
 	detail, err := s.studentRepo.GetDetailByID(ctx, id)
 	if err != nil {

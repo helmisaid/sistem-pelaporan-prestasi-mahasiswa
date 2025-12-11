@@ -26,6 +26,7 @@ func NewLecturerRepository(db *sql.DB) ILecturerRepository {
 	return &lecturerRepository{db: db}
 }
 
+// CreateLecturer
 func (r *lecturerRepository) Create(ctx context.Context, tx *sql.Tx, userID, lecturerID, department string) error {
 	query := `
 		INSERT INTO lecturers (user_id, lecturer_id, department)
@@ -46,6 +47,7 @@ func (r *lecturerRepository) Create(ctx context.Context, tx *sql.Tx, userID, lec
 	return err
 }
 
+// UpdateLecturer
 func (r *lecturerRepository) Update(ctx context.Context, tx *sql.Tx, userID string, lecturerID, department *string) error {
 	query := `UPDATE lecturers SET department = COALESCE($1, department), lecturer_id = COALESCE($2, lecturer_id) WHERE user_id = $3`
 	
@@ -63,6 +65,7 @@ func (r *lecturerRepository) Update(ctx context.Context, tx *sql.Tx, userID stri
 	return err
 }
 
+// GetLecturerByUserID
 func (r *lecturerRepository) GetByUserID(ctx context.Context, userID string) (*model.LecturerInfo, error) {
 	query := `SELECT id, lecturer_id, department FROM lecturers WHERE user_id = $1`
 	
@@ -79,6 +82,7 @@ func (r *lecturerRepository) GetByUserID(ctx context.Context, userID string) (*m
 	return &info, nil
 }
 
+// DeleteLecturer
 func (r *lecturerRepository) Delete(ctx context.Context, tx *sql.Tx, userID string) error {
 	query := `DELETE FROM lecturers WHERE user_id = $1`
 	
@@ -96,6 +100,7 @@ func (r *lecturerRepository) Delete(ctx context.Context, tx *sql.Tx, userID stri
 	return err
 }
 
+// CheckLecturerIDExists
 func (r *lecturerRepository) CheckLecturerIDExists(ctx context.Context, lecturerID string, excludeUserID *string) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM lecturers WHERE lecturer_id = $1 AND ($2::uuid IS NULL OR user_id != $2))`
 	var exists bool
@@ -103,6 +108,7 @@ func (r *lecturerRepository) CheckLecturerIDExists(ctx context.Context, lecturer
 	return exists, err
 }
 
+// CheckExistsByID
 func (r *lecturerRepository) CheckExistsByID(ctx context.Context, id string) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM lecturers WHERE id = $1)`
 	var exists bool
@@ -110,7 +116,7 @@ func (r *lecturerRepository) CheckExistsByID(ctx context.Context, id string) (bo
 	return exists, err
 }
 
-// GetAll retrieves all lecturers with pagination and search
+// GetAllLecturer
 func (r *lecturerRepository) GetAll(ctx context.Context, page, pageSize int, search, sortBy, sortOrder string) ([]model.LecturerListDTO, int64, error) {
 	offset := (page - 1) * pageSize
 
@@ -165,7 +171,7 @@ func (r *lecturerRepository) GetAll(ctx context.Context, page, pageSize int, sea
 	return lecturers, total, rows.Err()
 }
 
-// GetAdvisees retrieves students supervised by a specific lecturer
+// GetAdvisees
 func (r *lecturerRepository) GetAdvisees(ctx context.Context, lecturerID string, page, pageSize int) ([]model.StudentListDTO, int64, error) {
 	offset := (page - 1) * pageSize
 

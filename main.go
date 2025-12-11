@@ -39,13 +39,15 @@ func main() {
 	lecturerRepo := repository.NewLecturerRepository(pgDB)
 	authRepo := repository.NewAuthRepository(pgDB)
 	achievementRepo := repository.NewAchievementRepository(pgDB, mongoDB)
+	reportRepo := repository.NewReportRepository(pgDB, mongoDB)
 
-	// Initialize Services
+
 	lecturerSvc := service.NewLecturerService(lecturerRepo)
 	studentSvc := service.NewStudentService(studentRepo, lecturerSvc)
 	userSvc := service.NewUserService(userRepo, studentSvc, lecturerSvc, pgDB)
 	authSvc := service.NewAuthService(authRepo)
 	achievementSvc := service.NewAchievementService(achievementRepo, studentRepo, lecturerSvc)
+	reportSvc := service.NewReportService(reportRepo, studentRepo, lecturerSvc)
 
 	app := fiber.New()
 	app.Use(cors.New())
@@ -67,6 +69,7 @@ func main() {
 	route.RegisterStudentRoutes(api, studentSvc, achievementSvc)
 	route.RegisterLecturerRoutes(api, lecturerSvc)
 	route.RegisterAchievementRoutes(api, achievementSvc)
+	route.RegisterReportRoutes(api, reportSvc)
 
 	port := os.Getenv("APP_PORT")
 	if port == "" {

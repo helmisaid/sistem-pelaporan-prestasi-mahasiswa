@@ -26,6 +26,7 @@ func NewStudentRepository(db *sql.DB) IStudentRepository {
 	return &studentRepository{db: db}
 }
 
+// CreateStudent
 func (r *studentRepository) Create(ctx context.Context, tx *sql.Tx, userID string, studentID, programStudy, academicYear string, advisorID *string) error {
 	query := `
 		INSERT INTO students (user_id, student_id, program_study, academic_year, advisor_id)
@@ -46,6 +47,7 @@ func (r *studentRepository) Create(ctx context.Context, tx *sql.Tx, userID strin
 	return err
 }
 
+// UpdateStudent
 func (r *studentRepository) Update(ctx context.Context, tx *sql.Tx, userID string, studentID, programStudy, academicYear *string, advisorID *string) error {
 	query := `
 		UPDATE students 
@@ -70,6 +72,7 @@ func (r *studentRepository) Update(ctx context.Context, tx *sql.Tx, userID strin
 	return err
 }
 
+// GetByUserID
 func (r *studentRepository) GetByUserID(ctx context.Context, userID string) (*model.StudentInfo, error) {
 	query := `
 		SELECT s.id, s.student_id, s.program_study, s.academic_year, s.advisor_id,
@@ -104,6 +107,7 @@ func (r *studentRepository) GetByUserID(ctx context.Context, userID string) (*mo
 	return &info, nil
 }
 
+// DeleteStudent
 func (r *studentRepository) Delete(ctx context.Context, tx *sql.Tx, userID string) error {
 	query := `DELETE FROM students WHERE user_id = $1`
 	
@@ -121,6 +125,7 @@ func (r *studentRepository) Delete(ctx context.Context, tx *sql.Tx, userID strin
 	return err
 }
 
+// CheckStudentIDExists
 func (r *studentRepository) CheckStudentIDExists(ctx context.Context, studentID string, excludeUserID *string) (bool, error) {
 	query := `SELECT EXISTS(SELECT 1 FROM students WHERE student_id = $1 AND ($2::uuid IS NULL OR user_id != $2))`
 	var exists bool
@@ -128,6 +133,7 @@ func (r *studentRepository) CheckStudentIDExists(ctx context.Context, studentID 
 	return exists, err
 }
 
+// GetAllStudent
 func (r *studentRepository) GetAll(ctx context.Context, page, pageSize int, search, sortBy, sortOrder string) ([]model.StudentListDTO, int64, error) {
 	offset := (page - 1) * pageSize
 

@@ -113,7 +113,7 @@ func (r *achievementRepository) GetRefByID(ctx context.Context, id string) (*mod
 	return &ach, nil
 }
 
-// Add Attachment (Mongo)
+// Add Attachment 
 func (r *achievementRepository) AddAttachment(ctx context.Context, mongoID string, attachment model.AchievementAttachment) error {
 	collection := r.mongoDB.Collection("achievements")
 
@@ -132,7 +132,7 @@ func (r *achievementRepository) AddAttachment(ctx context.Context, mongoID strin
 	return err
 }
 
-// GetAll 
+// GetAllAchievement 
 func (r *achievementRepository) GetAll(ctx context.Context, page, pageSize int, search, studentIDFilter, advisorIDFilter, statusFilter string) ([]model.AchievementListDTO, int64, error) {
 	offset := (page - 1) * pageSize
 
@@ -349,10 +349,6 @@ func (r *achievementRepository) Verify(ctx context.Context, id string, lecturerI
             "updated_at": time.Now(),
         },
     }
-
-    fmt.Printf("🔍 DEBUG MongoDB Update:\n")
-    fmt.Printf("   MongoID: %s\n", mongoIDStr)
-    fmt.Printf("   Points to set: %d\n", points)
 
     result, err := collection.UpdateOne(ctx, filter, update)
     if err != nil {
