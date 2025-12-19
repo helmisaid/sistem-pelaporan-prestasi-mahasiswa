@@ -9,7 +9,19 @@ type MetaInfo struct {
 	Errors  interface{} `json:"errors,omitempty"`
 }
 
-// Success returns 200 OK response
+type Response struct {
+	Status  string      `json:"status"`
+	Message string      `json:"message,omitempty"`
+	Data    interface{} `json:"data,omitempty"`
+	Errors  interface{} `json:"errors,omitempty"`
+}
+
+type ErrorResponse struct {
+	Status  string      `json:"status"`
+	Message string      `json:"message,omitempty"`
+	Errors  interface{} `json:"errors,omitempty"`
+}
+
 func Success(c *fiber.Ctx, message string, data interface{}) error {
 	return c.Status(fiber.StatusOK).JSON(MetaInfo{
 		Status:  "success",
@@ -18,7 +30,6 @@ func Success(c *fiber.Ctx, message string, data interface{}) error {
 	})
 }
 
-// Created returns 201 Created response
 func Created(c *fiber.Ctx, message string, data interface{}) error {
 	return c.Status(fiber.StatusCreated).JSON(MetaInfo{
 		Status:  "success",
@@ -27,7 +38,6 @@ func Created(c *fiber.Ctx, message string, data interface{}) error {
 	})
 }
 
-// BadRequest returns 400 Bad Request response
 func BadRequest(c *fiber.Ctx, message string, errors interface{}) error {
 	return c.Status(fiber.StatusBadRequest).JSON(MetaInfo{
 		Status:  "error",
@@ -36,7 +46,6 @@ func BadRequest(c *fiber.Ctx, message string, errors interface{}) error {
 	})
 }
 
-// Unauthorized returns 401 Unauthorized response
 func Unauthorized(c *fiber.Ctx, message string) error {
 	return c.Status(fiber.StatusUnauthorized).JSON(MetaInfo{
 		Status:  "error",
@@ -44,7 +53,6 @@ func Unauthorized(c *fiber.Ctx, message string) error {
 	})
 }
 
-// Forbidden returns 403 Forbidden response
 func Forbidden(c *fiber.Ctx, message string) error {
 	return c.Status(fiber.StatusForbidden).JSON(MetaInfo{
 		Status:  "error",
@@ -52,7 +60,6 @@ func Forbidden(c *fiber.Ctx, message string) error {
 	})
 }
 
-// NotFound returns 404 Not Found response
 func NotFound(c *fiber.Ctx, message string) error {
 	return c.Status(fiber.StatusNotFound).JSON(MetaInfo{
 		Status:  "error",
@@ -60,7 +67,6 @@ func NotFound(c *fiber.Ctx, message string) error {
 	})
 }
 
-// InternalServerError returns 500 Internal Server Error response
 func InternalServerError(c *fiber.Ctx, message string) error {
 	return c.Status(fiber.StatusInternalServerError).JSON(MetaInfo{
 		Status:  "error",

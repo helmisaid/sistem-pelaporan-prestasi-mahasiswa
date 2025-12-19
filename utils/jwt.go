@@ -8,7 +8,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// JWTClaims 
 type JWTClaims struct {
 	UserID   string `json:"user_id"`
 	Username string `json:"username"`
@@ -25,7 +24,6 @@ func getSecret() []byte {
 	return []byte(secret)
 }
 
-// Generate Token
 func GenerateAccessToken(userID, username, role string, permissions []string) (string, error) {
 	claims := JWTClaims{
 		UserID:   userID,
@@ -41,7 +39,6 @@ func GenerateAccessToken(userID, username, role string, permissions []string) (s
 	return token.SignedString(getSecret())
 }
 
-// Generate Refresh Token
 func GenerateRefreshToken(userID, username, role string) (string, error) {
 	claims := JWTClaims{
 		UserID:   userID,
@@ -56,7 +53,6 @@ func GenerateRefreshToken(userID, username, role string) (string, error) {
 	return token.SignedString(getSecret())
 }
 
-// Validasi Token
 func ValidateToken(tokenString string) (*JWTClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return getSecret(), nil

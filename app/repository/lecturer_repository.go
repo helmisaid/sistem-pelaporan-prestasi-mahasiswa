@@ -120,7 +120,6 @@ func (r *lecturerRepository) CheckExistsByID(ctx context.Context, id string) (bo
 func (r *lecturerRepository) GetAll(ctx context.Context, page, pageSize int, search, sortBy, sortOrder string) ([]model.LecturerListDTO, int64, error) {
 	offset := (page - 1) * pageSize
 
-	// Count total query
 	countQuery := `
 		SELECT COUNT(*)
 		FROM lecturers l
@@ -136,7 +135,6 @@ func (r *lecturerRepository) GetAll(ctx context.Context, page, pageSize int, sea
 		return nil, 0, err
 	}
 
-	// Data query with join
 	dataQuery := `
 		SELECT 
 			u.id, l.lecturer_id, u.full_name, u.email,
@@ -175,7 +173,6 @@ func (r *lecturerRepository) GetAll(ctx context.Context, page, pageSize int, sea
 func (r *lecturerRepository) GetAdvisees(ctx context.Context, lecturerID string, page, pageSize int) ([]model.StudentListDTO, int64, error) {
 	offset := (page - 1) * pageSize
 
-	// Count total query
 	countQuery := `
 		SELECT COUNT(*)
 		FROM students s
@@ -189,7 +186,6 @@ func (r *lecturerRepository) GetAdvisees(ctx context.Context, lecturerID string,
 		return nil, 0, err
 	}
 
-	// Data query
 	dataQuery := `
 		SELECT 
 			u.id, s.student_id, u.full_name, u.email,

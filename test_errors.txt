@@ -1,0 +1,28 @@
+# sistem-pelaporan-prestasi-mahasiswa/app/service [sistem-pelaporan-prestasi-mahasiswa/app/service.test]
+app\service\achievement_service_test.go:24:65: cannot use mockLecturerSvc (variable of type *MockLecturerService) as ILecturerService value in argument to NewAchievementService: *MockLecturerService does not implement ILecturerService (wrong type for method GetAdvisees)
+		have GetAdvisees(context.Context, string, string, string, int, int) (*model.PaginatedStudents, error)
+		want GetAdvisees(*fiber.Ctx) error
+app\service\achievement_service_test.go:67:65: cannot use mockLecturerSvc (variable of type *MockLecturerService) as ILecturerService value in argument to NewAchievementService: *MockLecturerService does not implement ILecturerService (wrong type for method GetAdvisees)
+		have GetAdvisees(context.Context, string, string, string, int, int) (*model.PaginatedStudents, error)
+		want GetAdvisees(*fiber.Ctx) error
+app\service\achievement_service_test.go:107:65: cannot use mockLecturerSvc (variable of type *MockLecturerService) as ILecturerService value in argument to NewAchievementService: *MockLecturerService does not implement ILecturerService (wrong type for method GetAdvisees)
+		have GetAdvisees(context.Context, string, string, string, int, int) (*model.PaginatedStudents, error)
+		want GetAdvisees(*fiber.Ctx) error
+app\service\achievement_service_test.go:152:65: cannot use mockLecturerSvc (variable of type *MockLecturerService) as ILecturerService value in argument to NewAchievementService: *MockLecturerService does not implement ILecturerService (wrong type for method GetAdvisees)
+		have GetAdvisees(context.Context, string, string, string, int, int) (*model.PaginatedStudents, error)
+		want GetAdvisees(*fiber.Ctx) error
+app\service\lecturer_service_test.go:61:11: mockRepo.exists undefined (type *MockLecturerRepository has no field or method exists)
+app\service\report_service_test.go:38:72: cannot use &MockLecturerService{} (value of type *MockLecturerService) as ILecturerService value in argument to NewReportService: *MockLecturerService does not implement ILecturerService (wrong type for method GetAdvisees)
+		have GetAdvisees(context.Context, string, string, string, int, int) (*model.PaginatedStudents, error)
+		want GetAdvisees(*fiber.Ctx) error
+app\service\report_service_test.go:62:63: cannot use mockLecturerSvc (variable of type *MockLecturerService) as ILecturerService value in argument to NewReportService: *MockLecturerService does not implement ILecturerService (wrong type for method GetAdvisees)
+		have GetAdvisees(context.Context, string, string, string, int, int) (*model.PaginatedStudents, error)
+		want GetAdvisees(*fiber.Ctx) error
+app\service\report_service_test.go:72:18: mockStudentRepo.detailID undefined (type *MockStudentRepository has no field or method detailID)
+app\service\student_service_test.go:20:41: cannot use mockLecturerSvc (variable of type *MockLecturerService) as ILecturerService value in argument to NewStudentService: *MockLecturerService does not implement ILecturerService (wrong type for method GetAdvisees)
+		have GetAdvisees(context.Context, string, string, string, int, int) (*model.PaginatedStudents, error)
+		want GetAdvisees(*fiber.Ctx) error
+app\service\student_service_test.go:44:41: cannot use mockLecturerSvc (variable of type *MockLecturerService) as ILecturerService value in argument to NewStudentService: *MockLecturerService does not implement ILecturerService (wrong type for method GetAdvisees)
+		have GetAdvisees(context.Context, string, string, string, int, int) (*model.PaginatedStudents, error)
+		want GetAdvisees(*fiber.Ctx) error
+app\service\student_service_test.go:44:41: too many errors

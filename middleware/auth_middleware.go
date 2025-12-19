@@ -7,7 +7,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// validasi token JWT
 func AuthProtected() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		authHeader := c.Get("Authorization")
@@ -44,7 +43,6 @@ func AuthProtected() fiber.Handler {
 
 
 
-// RBAC
 func PermissionCheck(requiredPermission string) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		permsString, ok := c.Locals("permissions").([]string)

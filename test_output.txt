@@ -1,0 +1,7 @@
+# sistem-pelaporan-prestasi-mahasiswa/app/service [sistem-pelaporan-prestasi-mahasiswa/app/service.test]
+app\service\lecturer_service_test.go:61:11: mockRepo.exists undefined (type *MockLecturerRepository has no field or method exists)
+app\service\report_service_test.go:72:18: mockStudentRepo.detailID undefined (type *MockStudentRepository has no field or method detailID)
+app\service\student_service_test.go:46:11: mockRepo.detailID undefined (type *MockStudentRepository has no field or method detailID)
+app\service\student_service_test.go:85:11: mockRepo.detailID undefined (type *MockStudentRepository has no field or method detailID)
+FAIL	sistem-pelaporan-prestasi-mahasiswa/app/service [build failed]
+FAIL
