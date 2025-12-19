@@ -137,7 +137,6 @@ func (r *studentRepository) CheckStudentIDExists(ctx context.Context, studentID 
 func (r *studentRepository) GetAll(ctx context.Context, page, pageSize int, search, sortBy, sortOrder string) ([]model.StudentListDTO, int64, error) {
 	offset := (page - 1) * pageSize
 
-	// Count total query
 	countQuery := `
 		SELECT COUNT(*)
 		FROM students s
@@ -153,7 +152,6 @@ func (r *studentRepository) GetAll(ctx context.Context, page, pageSize int, sear
 		return nil, 0, err
 	}
 
-	// Data query with join
 	dataQuery := `
 		SELECT 
 			u.id, s.student_id, u.full_name, u.email,

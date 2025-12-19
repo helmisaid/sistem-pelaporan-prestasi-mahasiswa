@@ -12,28 +12,48 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
+
+	_ "sistem-pelaporan-prestasi-mahasiswa/docs"
+
+	"github.com/gofiber/fiber/v2/middleware/logger"
+	fiberSwagger "github.com/swaggo/fiber-swagger"
 )
 
+// @title Sistem Pelaporan Prestasi Mahasiswa API
+// @version 1.0
+// @description API untuk mengelola data prestasi mahasiswa, dosen wali, dan laporan.
+// @termsOfService http://swagger.io/terms/
+
+// @contact.name API Support
+// @contact.email support@swagger.io
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host localhost:3000
+// @BasePath /api/v1
+// @schemes http
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and JWT token.
 func main() {
-	// Environment
 	if err := godotenv.Load(); err != nil {
 		log.Println("⚠️  Warning: File .env tidak ditemukan, menggunakan system environment")
 	}
 
-	// Koneksi PostgreSQL
 	pgDB, err := database.ConnectPostgres()
 	if err != nil {
 		log.Fatal("❌ Gagal konek PostgreSQL: ", err)
 	}
 	defer pgDB.Close()
 
-	// Koneksi MongoDB 
 	mongoDB, err := database.ConnectMongo()
 	if err != nil {
 		log.Fatal("❌ Gagal konek MongoDB: ", err)
 	}
 
-	// Initialize Repositories
 	userRepo := repository.NewUserRepository(pgDB)
 	studentRepo := repository.NewStudentRepository(pgDB)
 	lecturerRepo := repository.NewLecturerRepository(pgDB)
@@ -51,6 +71,7 @@ func main() {
 
 	app := fiber.New()
 	app.Use(cors.New())
+	app.Use(logger.New())
 
 	app.Static("/uploads", "./uploads")
 
@@ -61,7 +82,8 @@ func main() {
 		})
 	})
 
-	// Grouping Route API 
+	app.Get("/swagger/*", fiberSwagger.WrapHandler)
+
 	api := app.Group("/api/v1")
 
 	route.RegisterAuthRoutes(api, authSvc)
@@ -77,5 +99,6 @@ func main() {
 	}
 
 	log.Println("🚀 Server berjalan di port :" + port)
+	log.Println("📄 Swagger UI tersedia di http://localhost:" + port + "/swagger/index.html")
 	log.Fatal(app.Listen(":" + port))
 }

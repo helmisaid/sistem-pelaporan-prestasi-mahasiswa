@@ -169,14 +169,12 @@ func (r *achievementRepository) GetAll(ctx context.Context, page, pageSize int, 
 		argCounter++
 	}
 
-	// Count Total
 	var total int64
 	countQuery := "SELECT COUNT(*) " + baseQuery
 	if err := r.pgDB.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 
-	// Select Data
 	selectQuery := `
         SELECT ar.id, ar.mongo_achievement_id, ar.status, ar.created_at, 
                s.student_id, u.full_name 
@@ -215,7 +213,6 @@ func (r *achievementRepository) GetAll(ctx context.Context, page, pageSize int, 
 		return achievements, total, nil
 	}
 
-	// Fetch Details from MongoDB 
 	cursor, err := r.mongoDB.Collection("achievements").Find(ctx, bson.M{"_id": bson.M{"$in": mongoIDs}})
 	if err != nil {
 		return nil, 0, err
@@ -228,7 +225,6 @@ func (r *achievementRepository) GetAll(ctx context.Context, page, pageSize int, 
 			continue
 		}
 
-		// Merge Mongo data to struct
 		if idx, ok := mongoMap[m.ID.Hex()]; ok {
 			achievements[idx].Title = m.Title
 			achievements[idx].AchievementType = m.AchievementType
@@ -270,7 +266,6 @@ func (r *achievementRepository) GetDetailByID(ctx context.Context, id string) (*
 		d.Student.AdvisorID = &advisorID.String
 	}
 
-	// Get Mongo Data
 	oid, err := primitive.ObjectIDFromHex(mongoIDStr)
 	if err != nil {
 		return nil, err
@@ -282,7 +277,6 @@ func (r *achievementRepository) GetDetailByID(ctx context.Context, id string) (*
 		return nil, err
 	}
 
-	// Merge
 	d.AchievementType = m.AchievementType
 	d.Title = m.Title
 	d.Description = m.Description
@@ -352,7 +346,6 @@ func (r *achievementRepository) Verify(ctx context.Context, id string, lecturerI
 
     result, err := collection.UpdateOne(ctx, filter, update)
     if err != nil {
-        fmt.Printf("❌ ERROR MongoDB Update: %v\n", err)
         return err
     }
 

@@ -1,0 +1,99 @@
+=== RUN   TestAchievementService_Create
+=== RUN   TestAchievementService_Create/POST_-_Create_Achievement_Success
+--- PASS: TestAchievementService_Create (0.00s)
+    --- PASS: TestAchievementService_Create/POST_-_Create_Achievement_Success (0.00s)
+=== RUN   TestAchievementService_Submit
+=== RUN   TestAchievementService_Submit/POST_-_Submit_Achievement_Success
+--- PASS: TestAchievementService_Submit (0.00s)
+    --- PASS: TestAchievementService_Submit/POST_-_Submit_Achievement_Success (0.00s)
+=== RUN   TestAchievementService_Verify
+=== RUN   TestAchievementService_Verify/POST_-_Verify_Achievement_by_Advisor
+--- PASS: TestAchievementService_Verify (0.00s)
+    --- PASS: TestAchievementService_Verify/POST_-_Verify_Achievement_by_Advisor (0.00s)
+=== RUN   TestAchievementService_Delete
+=== RUN   TestAchievementService_Delete/DELETE_-_Soft_Delete_Achievement_Success
+--- PASS: TestAchievementService_Delete (0.00s)
+    --- PASS: TestAchievementService_Delete/DELETE_-_Soft_Delete_Achievement_Success (0.00s)
+=== RUN   TestAuthService_Login
+=== RUN   TestAuthService_Login/POST_-_Login_Empty_Credentials
+=== RUN   TestAuthService_Login/POST_-_Login_Unknown_User
+--- PASS: TestAuthService_Login (0.00s)
+    --- PASS: TestAuthService_Login/POST_-_Login_Empty_Credentials (0.00s)
+    --- PASS: TestAuthService_Login/POST_-_Login_Unknown_User (0.00s)
+=== RUN   TestAuthService_RefreshToken
+=== RUN   TestAuthService_RefreshToken/POST_-_Invalid_Refresh_Token
+--- PASS: TestAuthService_RefreshToken (0.00s)
+    --- PASS: TestAuthService_RefreshToken/POST_-_Invalid_Refresh_Token (0.00s)
+=== RUN   TestAuthService_Logout
+=== RUN   TestAuthService_Logout/POST_-_Logout_Success
+--- PASS: TestAuthService_Logout (0.00s)
+    --- PASS: TestAuthService_Logout/POST_-_Logout_Success (0.00s)
+=== RUN   TestAuthService_GetProfile
+=== RUN   TestAuthService_GetProfile/GET_-_Profile_Success
+--- PASS: TestAuthService_GetProfile (0.00s)
+    --- PASS: TestAuthService_GetProfile/GET_-_Profile_Success (0.00s)
+=== RUN   TestLecturerService_GetAll
+=== RUN   TestLecturerService_GetAll/GET_-_List_Lecturers_as_Admin
+=== RUN   TestLecturerService_GetAll/GET_-_List_Lecturers_as_Non-Admin_(Forbidden)
+--- PASS: TestLecturerService_GetAll (0.00s)
+    --- PASS: TestLecturerService_GetAll/GET_-_List_Lecturers_as_Admin (0.00s)
+    --- PASS: TestLecturerService_GetAll/GET_-_List_Lecturers_as_Non-Admin_(Forbidden) (0.00s)
+=== RUN   TestLecturerService_GetAdvisees
+=== RUN   TestLecturerService_GetAdvisees/GET_-_Advisees_Success
+--- PASS: TestLecturerService_GetAdvisees (0.00s)
+    --- PASS: TestLecturerService_GetAdvisees/GET_-_Advisees_Success (0.00s)
+=== RUN   TestReportService_GetDashboardStats
+=== RUN   TestReportService_GetDashboardStats/GET_-_Global_Stats_Success
+--- PASS: TestReportService_GetDashboardStats (0.00s)
+    --- PASS: TestReportService_GetDashboardStats/GET_-_Global_Stats_Success (0.00s)
+=== RUN   TestReportService_GetStudentReport_RBAC
+=== RUN   TestReportService_GetStudentReport_RBAC/Mahasiswa_Access_-_Own_Report_(Success)
+    report_service_test.go:91: Mahasiswa should have access to their own report, got 404
+=== RUN   TestReportService_GetStudentReport_RBAC/Mahasiswa_Access_-_Other_Report_(Forbidden)
+=== RUN   TestReportService_GetStudentReport_RBAC/Admin_Access_-_Any_Report_(Success)
+    report_service_test.go:133: Admin should have unrestricted access, got 404
+--- FAIL: TestReportService_GetStudentReport_RBAC (0.00s)
+    --- FAIL: TestReportService_GetStudentReport_RBAC/Mahasiswa_Access_-_Own_Report_(Success) (0.00s)
+    --- PASS: TestReportService_GetStudentReport_RBAC/Mahasiswa_Access_-_Other_Report_(Forbidden) (0.00s)
+    --- PASS: TestReportService_GetStudentReport_RBAC/Admin_Access_-_Any_Report_(Success) (0.00s)
+=== RUN   TestStudentService_GetAll
+=== RUN   TestStudentService_GetAll/GET_-_List_Students_Success
+--- PASS: TestStudentService_GetAll (0.00s)
+    --- PASS: TestStudentService_GetAll/GET_-_List_Students_Success (0.00s)
+=== RUN   TestStudentService_GetByID
+=== RUN   TestStudentService_GetByID/GET_-_Student_By_ID_Success
+    student_service_test.go:59: Expected 200 status, got 404
+=== RUN   TestStudentService_GetByID/GET_-_Student_By_ID_Not_Found
+--- FAIL: TestStudentService_GetByID (0.00s)
+    --- FAIL: TestStudentService_GetByID/GET_-_Student_By_ID_Success (0.00s)
+    --- PASS: TestStudentService_GetByID/GET_-_Student_By_ID_Not_Found (0.00s)
+=== RUN   TestStudentService_UpdateAdvisor
+=== RUN   TestStudentService_UpdateAdvisor/PUT_-_Update_Advisor_Success
+    student_service_test.go:104: Expected 200 status, got 404
+--- FAIL: TestStudentService_UpdateAdvisor (0.00s)
+    --- FAIL: TestStudentService_UpdateAdvisor/PUT_-_Update_Advisor_Success (0.00s)
+=== RUN   TestUserService_Create
+=== RUN   TestUserService_Create/POST_-_Create_User_Duplicate_Username
+=== RUN   TestUserService_Create/POST_-_Create_User_Email_Already_Exists
+--- PASS: TestUserService_Create (0.00s)
+    --- PASS: TestUserService_Create/POST_-_Create_User_Duplicate_Username (0.00s)
+    --- PASS: TestUserService_Create/POST_-_Create_User_Email_Already_Exists (0.00s)
+=== RUN   TestUserService_Delete
+=== RUN   TestUserService_Delete/DELETE_-_User_Soft_Delete_Success
+=== RUN   TestUserService_Delete/DELETE_-_User_Not_Found
+--- PASS: TestUserService_Delete (0.00s)
+    --- PASS: TestUserService_Delete/DELETE_-_User_Soft_Delete_Success (0.00s)
+    --- PASS: TestUserService_Delete/DELETE_-_User_Not_Found (0.00s)
+=== RUN   TestUserService_GetByID
+=== RUN   TestUserService_GetByID/GET_-_User_By_ID_Success
+=== RUN   TestUserService_GetByID/GET_-_User_By_ID_Not_Found
+--- PASS: TestUserService_GetByID (0.00s)
+    --- PASS: TestUserService_GetByID/GET_-_User_By_ID_Success (0.00s)
+    --- PASS: TestUserService_GetByID/GET_-_User_By_ID_Not_Found (0.00s)
+=== RUN   TestUserService_UpdateRole
+=== RUN   TestUserService_UpdateRole/PUT_-_Update_Role_Success
+--- PASS: TestUserService_UpdateRole (0.00s)
+    --- PASS: TestUserService_UpdateRole/PUT_-_Update_Role_Success (0.00s)
+FAIL
+FAIL	sistem-pelaporan-prestasi-mahasiswa/app/service	1.914s
+FAIL
